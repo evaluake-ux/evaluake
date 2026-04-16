@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lead List Engine — Evaluake</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#f5f5f7;--sur:#fff;--bdr:#e4e4e4;--ink:#1d1d1f;--mut:#86868b;--lbl:#6e6e73;--acc:#34c759;--grn:#28a745;--red:#dc3545;--blu:#007aff;--fnt:-apple-system,BlinkMacSystemFont,'Inter',sans-serif}
+body{background:var(--bg);color:var(--ink);font-family:var(--fnt);-webkit-font-smoothing:antialiased}
+input,textarea,select{font-family:var(--fnt);font-size:12px;background:var(--bg);border:1px solid var(--bdr);border-radius:6px;padding:6px 8px;color:var(--ink);outline:none;width:100%;transition:border-color .15s}
+input:focus,textarea:focus,select:focus{border-color:var(--acc)}
+textarea{resize:vertical;line-height:1.5}
+label{font-size:10px;font-weight:600;color:var(--lbl);text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:3px}
+.keybar{background:#fffbeb;border-bottom:1px solid #fde68a;padding:10px 24px;display:flex;align-items:center;gap:10px}
+.keybar input{max-width:360px;font-family:monospace;font-size:12px}
+.ks{font-size:11px;font-weight:600;white-space:nowrap}
+.ok{color:var(--grn)}.bad{color:var(--red)}
+.hdr{background:var(--sur);border-bottom:1px solid var(--bdr);padding:12px 24px;display:flex;align-items:center;gap:10px}
+.logo{width:26px;height:26px;background:var(--ink);border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:#fff}
+.hdr-t{font-size:15px;font-weight:700}
+.hdr-tag{background:var(--acc);color:#fff;font-size:10px;font-weight:700;padding:2px 9px;border-radius:20px;text-transform:uppercase}
+.layout{display:grid;grid-template-columns:360px 1fr;height:calc(100vh - 91px)}
+.fp{background:var(--sur);border-right:1px solid var(--bdr);overflow-y:auto}
+.fs{padding:12px 16px;border-bottom:1px solid var(--bdr)}
+.sh{font-size:10px;font-weight:700;color:var(--lbl);text-transform:uppercase;letter-spacing:.07em;margin-bottom:9px;display:flex;align-items:center;gap:6px}
+.sh::after{content:'';flex:1;height:1px;background:var(--bdr)}
+.fld{margin-bottom:8px}.fld:last-child{margin-bottom:0}
+.fr{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.upload{border:2px dashed var(--bdr);border-radius:8px;padding:15px;text-align:center;cursor:pointer;transition:all .15s;margin-bottom:8px}
+.upload:hover{border-color:var(--acc);background:#f0fff4}
+.upload.has{border-color:var(--grn);background:#f0fff4;border-style:solid}
+.upload-ico{font-size:20px;margin-bottom:4px}
+.upload-t{font-size:12px;font-weight:600}
+.upload-s{font-size:11px;color:var(--mut);margin-top:2px}
+.upload-fn{font-size:11px;font-weight:600;color:var(--grn);margin-top:3px}
+.preview{background:#f0fff4;border:1px solid #c3e6cb;border-radius:6px;padding:8px 10px;font-size:11px;line-height:1.6;display:none}
+.preview.show{display:block}
+.icp-cards{display:flex;flex-direction:column;gap:7px}
+.icpc-in{background:var(--bg);border:1px solid var(--bdr);border-radius:7px;padding:9px}
+.icpc-lbl{font-size:10px;font-weight:700;text-transform:uppercase;margin-bottom:6px}
+.icp1-lbl{color:#BA7517}.icp2-lbl{color:#185FA5}.icp3-lbl{color:#3B6D11}
+.rsec{padding:12px 16px}
+.rbtn{width:100%;padding:11px;background:var(--acc);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;transition:background .15s}
+.rbtn:hover:not(:disabled){background:#28a745}
+.rbtn:disabled{background:var(--bdr);color:var(--mut);cursor:not-allowed}
+.rnote{font-size:11px;color:var(--mut);text-align:center;margin-top:5px}
+.op{overflow-y:auto;display:flex;flex-direction:column}
+.empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:40px;text-align:center}
+.empty-ico{font-size:36px;opacity:.15}
+.empty-t{font-size:16px;font-weight:600;color:var(--lbl)}
+.empty-s{font-size:12px;color:var(--mut);line-height:1.6;max-width:260px}
+.loading{flex:1;display:none;flex-direction:column;align-items:center;justify-content:center;gap:8px;text-align:center}
+.loading.show{display:flex}
+.spin{width:26px;height:26px;border:3px solid var(--bdr);border-top-color:var(--acc);border-radius:50%;animation:sp .7s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+.lsteps{display:flex;flex-direction:column;gap:4px;width:100%;max-width:280px}
+.lstep{font-size:11px;color:var(--mut);padding:5px 9px;background:var(--bg);border:1px solid var(--bdr);border-radius:5px;transition:all .2s}
+.lstep.active{color:var(--acc);border-color:var(--acc);background:#f0fff4}
+.lstep.done{color:var(--grn);border-color:#c3e6cb;background:#f0fff4}
+.results{display:none;padding:16px 20px 60px}
+.results.show{display:block}
+.brief{background:var(--sur);border:1px solid var(--bdr);border-radius:10px;overflow:hidden;margin-bottom:14px}
+.brief-hd{background:var(--bg);padding:11px 14px;border-bottom:1px solid var(--bdr);display:flex;align-items:center;justify-content:space-between}
+.brief-nm{font-size:14px;font-weight:700}
+.brief-mt{font-size:11px;color:var(--mut);margin-top:1px}
+.hit{font-size:10px;font-weight:600;color:var(--grn);background:#f0fff4;border:1px solid #c3e6cb;border-radius:4px;padding:2px 7px}
+.brief-bd{padding:13px 14px}
+.bsec{margin-bottom:12px}
+.bsec:last-child{margin-bottom:0}
+.bsec-t{font-size:10px;font-weight:700;color:var(--lbl);text-transform:uppercase;letter-spacing:.05em;margin-bottom:7px}
+.search-str{font-family:monospace;font-size:11px;background:var(--bg);border:1px solid var(--bdr);border-radius:6px;padding:9px 10px;line-height:1.7;color:var(--ink);word-break:break-all;position:relative}
+.cpbtn{position:absolute;top:6px;right:6px;padding:2px 7px;border:1px solid var(--bdr);border-radius:4px;background:var(--sur);font-size:10px;font-weight:600;color:var(--lbl);cursor:pointer}
+.cpbtn:hover{border-color:var(--ink)}
+.tags{display:flex;flex-wrap:wrap;gap:4px}
+.tag{font-size:10px;font-family:monospace;background:#eff6ff;border:1px solid #bfdbfe;border-radius:3px;padding:2px 6px;color:var(--blu)}
+.qc{display:flex;gap:6px;margin-bottom:3px}
+.qc-chk{color:var(--grn);font-size:11px;flex-shrink:0;margin-top:1px}
+.qc-t{font-size:12px;line-height:1.5}
+.dis{display:flex;gap:6px;margin-bottom:3px}
+.dis-x{color:var(--red);font-size:11px;flex-shrink:0;margin-top:1px}
+.dis-t{font-size:12px;line-height:1.5}
+.clay{font-family:monospace;font-size:11px;background:#f0fff4;border:1px solid #c3e6cb;border-radius:6px;padding:10px;line-height:1.8;white-space:pre-wrap;word-break:break-word}
+.abar{position:sticky;bottom:0;background:var(--sur);border-top:1px solid var(--bdr);padding:10px 20px;display:none;align-items:center;justify-content:space-between}
+.abar.show{display:flex}
+.btn{padding:7px 13px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;border:none;display:inline-flex;align-items:center;gap:4px}
+.btn-s{background:var(--bg);color:var(--ink);border:1px solid var(--bdr)}.btn-s:hover{border-color:var(--ink)}
+</style>
+</head>
+<body>
+<div class="hdr">
+  <div class="logo">EV</div>
+  <span class="hdr-t">Evaluake</span>
+  <span class="hdr-tag">Stage 4 — Lead Engine</span>
+</div>
+<div class="keybar">
+  <input type="password" id="apikey" placeholder="Paste Anthropic API key (sk-ant-...) — saved automatically">
+  <span class="ks" id="kstat"></span>
+</div>
+<div class="layout">
+<div class="fp">
+  <div class="fs"><div class="sh">01 · Upload Stage 1 PDF (optional)</div>
+    <div class="upload" id="upbox" onclick="document.getElementById('finput').click()">
+      <div class="upload-ico">📄</div>
+      <div class="upload-t">Drop Stage 1 PDF here</div>
+      <div class="upload-s">Auto-fills ICP fields below</div>
+      <div class="upload-fn" id="fname"></div>
+    </div>
+    <input type="file" id="finput" accept=".pdf" style="display:none" onchange="handlePDF(this)">
+    <div class="preview" id="prev"></div>
+  </div>
+  <div class="fs"><div class="sh">02 · ICPs</div>
+    <div class="icp-cards">
+      <div class="icpc-in">
+        <div class="icpc-lbl icp1-lbl">ICP 1</div>
+        <div class="fld"><label>Name</label><input id="i1n" placeholder="e.g. SMB Manufacturing Providers"></div>
+        <div class="fld"><label>Titles</label><input id="i1t" placeholder="e.g. Operations Manager, Sales Director"></div>
+        <div class="fld"><label>Pain</label><input id="i1p" placeholder="e.g. Can't scale relationship-based selling"></div>
+        <div class="fld"><label>Geography</label><input id="i1g" value="US"></div>
+      </div>
+      <div class="icpc-in">
+        <div class="icpc-lbl icp2-lbl">ICP 2</div>
+        <div class="fld"><label>Name</label><input id="i2n" placeholder="e.g. Professional Services Firms"></div>
+        <div class="fld"><label>Titles</label><input id="i2t" placeholder="e.g. Managing Partner, Practice Lead"></div>
+        <div class="fld"><label>Pain</label><input id="i2p" placeholder="e.g. Partners hate prospecting"></div>
+        <div class="fld"><label>Geography</label><input id="i2g" value="US"></div>
+      </div>
+      <div class="icpc-in">
+        <div class="icpc-lbl icp3-lbl">ICP 3</div>
+        <div class="fld"><label>Name</label><input id="i3n" placeholder="e.g. Healthcare Tech Vendors"></div>
+        <div class="fld"><label>Titles</label><input id="i3t" placeholder="e.g. VP Sales, BD Director"></div>
+        <div class="fld"><label>Pain</label><input id="i3p" placeholder="e.g. Generic outreach fails"></div>
+        <div class="fld"><label>Geography</label><input id="i3g" value="US"></div>
+      </div>
+    </div>
+  </div>
+  <div class="fs"><div class="sh">03 · Settings</div>
+    <div class="fr">
+      <div class="fld"><label>Total leads</label><input type="number" id="tl" value="1000"></div>
+      <div class="fld"><label>Per ICP</label><input type="number" id="pl" value="334"></div>
+    </div>
+    <div class="fld"><label>Verification tool</label><select id="vt"><option>BounceBye</option><option>ZeroBounce</option><option>NeverBounce</option><option>MillionVerifier</option></select></div>
+    <div class="fld"><label>Sourcing tool</label><select id="st"><option>Apollo.io</option><option>LinkedIn Sales Nav</option><option>Apollo + LinkedIn</option></select></div>
+    <div class="fld"><label>Exclusions</label><textarea id="ex" placeholder="Companies, industries, or geographies to exclude..."></textarea></div>
+  </div>
+  <div class="rsec">
+    <button class="rbtn" id="rbtn" onclick="runLead()">Generate Lead Briefs</button>
+    <div class="rnote">~60 sec · 3 ICP briefs · Apollo strings · Clay prompts · Quality filters</div>
+  </div>
+</div>
+<div class="op">
+  <div class="empty" id="emp">
+    <div class="empty-ico">📋</div>
+    <div class="empty-t">No briefs yet</div>
+    <div class="empty-s">Upload Stage 1 PDF or fill ICPs manually. Generate Apollo search strings and Clay prompts for Arif.</div>
+  </div>
+  <div class="loading" id="ld">
+    <div class="spin"></div>
+    <div style="font-size:13px;font-weight:600;">Building lead briefs...</div>
+    <div class="lsteps">
+      <div class="lstep" id="ls1">Building ICP 1 brief</div>
+      <div class="lstep" id="ls2">Building ICP 2 brief</div>
+      <div class="lstep" id="ls3">Building ICP 3 brief</div>
+    </div>
+  </div>
+  <div class="results" id="results"></div>
+</div>
+</div>
+<div class="abar" id="abar">
+  <span style="font-size:11px;color:var(--mut);">Briefs ready for Arif</span>
+  <button class="btn btn-s" onclick="dlDocx()">Download TXT</button>
+</div>
+
+<script>
+let lastBriefs = [];
+const ki = document.getElementById('apikey');
+const ks = document.getElementById('kstat');
+ki.addEventListener('input', () => {
+  const v = ki.value.trim();
+  if (v.startsWith('sk-ant') && v.length > 30) { localStorage.setItem('ev_key', v); ks.textContent = 'Saved ✓'; ks.className = 'ks ok'; }
+});
+window.onload = () => {
+  const s = localStorage.getItem('ev_key') || '';
+  if (s) { ki.value = s; ks.textContent = 'Key ready ✓'; ks.className = 'ks ok'; }
+  else { ks.textContent = 'Paste key above'; ks.className = 'ks bad'; }
+};
+function getKey() { return localStorage.getItem('ev_key') || ki.value.trim(); }
+function gv(id) { return document.getElementById(id)?.value?.trim() || ''; }
+const delay = ms => new Promise(r => setTimeout(r, ms));
+
+async function api(prompt, sys, tok) {
+  const key = getKey();
+  if (!key) throw new Error('No API key. Paste your sk-ant- key above.');
+  const r = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+    body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: tok || 1500, system: sys, messages: [{ role: 'user', content: prompt }] })
+  });
+  if (!r.ok) { const e = await r.json().catch(() => ({})); throw new Error(e.error?.message || 'API error ' + r.status); }
+  const d = await r.json();
+  return d.content.filter(c => c.type === 'text').map(c => c.text).join('');
+}
+function pj(raw) {
+  const c = raw.replace(/```json|```/g, '');
+  const s = c.indexOf('{'), e = c.lastIndexOf('}');
+  if (s === -1 || e === -1) throw new Error('No JSON in response');
+  return JSON.parse(c.slice(s, e + 1));
+}
+
+async function extractPDF(file) {
+  const lib = window['pdfjs-dist/build/pdf'];
+  lib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  const ab = await file.arrayBuffer();
+  const pdf = await lib.getDocument({ data: ab }).promise;
+  let text = '';
+  for (let i = 1; i <= pdf.numPages; i++) {
+    const page = await pdf.getPage(i);
+    const c = await page.getTextContent();
+    text += c.items.map(x => x.str).join(' ') + '\n';
+  }
+  return text;
+}
+
+async function handlePDF(input) {
+  const file = input.files[0];
+  if (!file) return;
+  document.getElementById('fname').textContent = '📎 ' + file.name;
+  document.getElementById('upbox').className = 'upload has';
+  const pr = document.getElementById('prev');
+  pr.className = 'preview show';
+  pr.textContent = 'Reading PDF...';
+  try {
+    const text = await extractPDF(file);
+    if (!text || text.length < 50) {
+      pr.textContent = 'PDF too short to parse. Fill ICPs manually.';
+      return;
+    }
+    // Try regex first
+    const icpM = text.match(/ICP\s*#?\s*\d+[^a-z]*?([A-Z][^\n]{5,60})/g) || [];
+    const painM = text.match(/(?:Pain|Core Pain)[^:]*:[\s]*([^\n]{10,120})/gi) || [];
+    const titM = text.match(/(?:Job\s*)?Titles?[^:]*:[\s]*([^\n]{5,120})/gi) || [];
+    const trgM = text.match(/(?:Buying\s*)?Trigger[^:]*:[\s]*([^\n]{5,120})/gi) || [];
+
+    let filled = 0;
+    for (let i = 0; i < 3; i++) {
+      if (icpM[i]) {
+        const name = icpM[i].replace(/ICP\s*#?\s*\d+[^a-z]*/i, '').trim();
+        if (name.length > 3) { document.getElementById('i'+(i+1)+'n').value = name; filled++; }
+      }
+      if (painM[i]) {
+        const pain = painM[i].replace(/(?:Pain|Core Pain)[^:]*:/i, '').trim();
+        if (pain.length > 3) document.getElementById('i'+(i+1)+'p').value = pain;
+      }
+      if (titM[i]) {
+        const tit = titM[i].replace(/(?:Job\s*)?Titles?[^:]*/i, '').replace(':', '').trim();
+        if (tit.length > 3) document.getElementById('i'+(i+1)+'t').value = tit;
+      }
+      if (trgM[i]) {
+        const trg = trgM[i].replace(/(?:Buying\s*)?Trigger[^:]*/i, '').replace(':', '').trim();
+        if (trg.length > 3) document.getElementById('i'+(i+1)+'g').value = trg;
+      }
+    }
+
+    if (filled >= 3) {
+      pr.innerHTML = '<strong>✓ ICPs extracted from PDF</strong><br>' +
+        [1,2,3].map(i => 'ICP '+i+': '+document.getElementById('i'+i+'n').value).join('<br>');
+    } else {
+      // Fallback: use Claude to extract
+      pr.textContent = 'Auto-extracting ICPs with AI...';
+      const key = getKey();
+      if (!key) { pr.textContent = 'Could not auto-extract. Fill ICPs manually.'; return; }
+      const r = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+        body: JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:400,
+          system:'Extract exactly 3 ICPs from this text. Output only JSON: {"icps":[{"name":"","titles":"","pain":"","trigger":""},{"name":"","titles":"","pain":"","trigger":""},{"name":"","titles":"","pain":"","trigger":""}]}',
+          messages:[{role:'user',content:'Extract 3 ICPs from this Stage 1 report:\n\n'+text.slice(0,3000)}]})
+      });
+      const d = await r.json();
+      const raw = d.content?.filter(c=>c.type==='text').map(c=>c.text).join('') || '';
+      const start = raw.indexOf('{'), end = raw.lastIndexOf('}');
+      if (start !== -1 && end !== -1) {
+        const parsed = JSON.parse(raw.slice(start, end+1));
+        parsed.icps.forEach((icp, i) => {
+          if (icp.name) document.getElementById('i'+(i+1)+'n').value = icp.name;
+          if (icp.titles) document.getElementById('i'+(i+1)+'t').value = icp.titles;
+          if (icp.pain) document.getElementById('i'+(i+1)+'p').value = icp.pain;
+          if (icp.trigger) if (icp.trigger) document.getElementById('i'+(i+1)+'g').value = icp.trigger;
+        });
+        pr.innerHTML = '<strong>✓ ICPs extracted with AI</strong><br>' +
+          parsed.icps.map((icp,i)=>'ICP '+(i+1)+': '+icp.name).join('<br>');
+      } else {
+        pr.textContent = 'Could not extract. Fill ICPs manually below.';
+      }
+    }
+  } catch(err) {
+    pr.textContent = 'Error reading PDF: ' + err.message + '. Fill ICPs manually.';
+    console.error(err);
+  }
+}
+
+function step(n) {
+  for (let i = 1; i <= 3; i++) {
+    const el = document.getElementById('ls' + i);
+    if (!el) continue;
+    el.className = 'lstep' + (i < n ? ' done' : i === n ? ' active' : '');
+  }
+}
+
+async function runLead() {
+  const key = getKey();
+  if (!key) { alert('Paste your Anthropic API key first.'); return; }
+  const icps = [];
+  for (let i = 1; i <= 3; i++) {
+    const name = gv('i' + i + 'n');
+    if (!name) { alert('Fill ICP ' + i + ' name first.'); return; }
+    icps.push({ rank: i, name, titles: gv('i' + i + 't'), pain: gv('i' + i + 'p'), geo: gv('i' + i + 'g') || 'US' });
+  }
+
+  document.getElementById('rbtn').disabled = true;
+  document.getElementById('rbtn').textContent = 'Building...';
+  document.getElementById('emp').style.display = 'none';
+  document.getElementById('results').className = 'results';
+  document.getElementById('ld').className = 'loading show';
+  document.getElementById('abar').className = 'abar';
+  lastBriefs = [];
+
+  const SYS = 'You are a B2B lead generation expert. Write precise Apollo boolean strings and Clay enrichment prompts. Output ONLY valid JSON. No text before or after.';
+
+  try {
+    for (let i = 0; i < icps.length; i++) {
+      step(i + 1);
+      const icp = icps[i];
+      const raw = await api(`Generate complete lead sourcing brief.
+ICP: ${icp.name}
+TITLES: ${icp.titles}
+PAIN: ${icp.pain}
+GEO: ${icp.geo}
+LEADS: ${gv('pl') || '334'}
+TOOL: ${gv('st')}
+VERIFY: ${gv('vt')}
+EXCLUDE: ${gv('ex') || 'None'}
+
+JSON: {"icp_name":"","apollo_titles":["","",""],"apollo_industries":["",""],"apollo_size":"","apollo_keywords":["",""],"apollo_boolean":"<ready-to-paste Apollo boolean search string>","linkedin_tips":"<3 sentences for LinkedIn Sales Nav>","data_fields":["First Name","Last Name","Email","Company","Title","LinkedIn URL","Company Size","Website"],"quality_keep":["","","",""],"disqualify":["","",""],"clay_prompt":"<complete Clay AI prompt for personalized icebreakers — specific to this ICP pain and triggers>","verify_steps":["","",""],"hit_rate":"","where_to_find":"<2-3 specific places to source this ICP>"}`,
+        SYS, 900);
+      lastBriefs.push({ icp, brief: pj(raw) });
+      await delay(300);
+    }
+
+    renderBriefs(lastBriefs);
+    document.getElementById('ld').className = 'loading';
+    document.getElementById('results').className = 'results show';
+    document.getElementById('abar').className = 'abar show';
+  } catch (err) {
+    document.getElementById('ld').className = 'loading';
+    document.getElementById('emp').style.display = 'flex';
+    document.getElementById('emp').innerHTML = '<div class="empty-ico">⚠️</div><div class="empty-t">Error</div><div class="empty-s">' + err.message + '</div>';
+  } finally {
+    document.getElementById('rbtn').disabled = false;
+    document.getElementById('rbtn').textContent = 'Generate Lead Briefs';
+  }
+}
+
+function cp(btn, text) {
+  navigator.clipboard.writeText(text).then(() => { const o = btn.textContent; btn.textContent = 'Copied!'; setTimeout(() => btn.textContent = o, 2000); });
+}
+
+function renderBriefs(briefs) {
+  document.getElementById('results').innerHTML = briefs.map((b, i) => {
+    const br = b.brief;
+    return `<div class="brief">
+      <div class="brief-hd">
+        <div><div class="brief-nm">ICP ${i + 1}: ${br.icp_name}</div><div class="brief-mt">${b.icp.titles} · ${b.icp.geo}</div></div>
+        <span class="hit">${br.hit_rate}</span>
+      </div>
+      <div class="brief-bd">
+        <div class="bsec"><div class="bsec-t">Where to find them</div><div style="font-size:12px;line-height:1.7;">${br.where_to_find}</div></div>
+        <div class="bsec">
+          <div class="bsec-t">Apollo filters</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;font-size:11px;margin-bottom:7px;">
+            <div><strong>Titles:</strong> ${(br.apollo_titles || []).join(', ')}</div>
+            <div><strong>Size:</strong> ${br.apollo_size}</div>
+            <div><strong>Industries:</strong> ${(br.apollo_industries || []).join(', ')}</div>
+            <div><strong>Keywords:</strong> ${(br.apollo_keywords || []).join(', ')}</div>
+          </div>
+          <div class="bsec-t" style="margin-top:6px;">Apollo boolean search</div>
+          <div class="search-str" style="position:relative;">${br.apollo_boolean}<button class="cpbtn" onclick="cp(this,'${(br.apollo_boolean || '').replace(/'/g, "\\'")}')">Copy</button></div>
+        </div>
+        <div class="bsec"><div class="bsec-t">LinkedIn tips</div><div style="font-size:12px;line-height:1.7;">${br.linkedin_tips}</div></div>
+        <div class="bsec"><div class="bsec-t">Quality filters — keep</div>${(br.quality_keep || []).map(f => '<div class="qc"><span class="qc-chk">✓</span><span class="qc-t">' + f + '</span></div>').join('')}</div>
+        <div class="bsec"><div class="bsec-t">Disqualifiers — remove</div>${(br.disqualify || []).map(d => '<div class="dis"><span class="dis-x">✗</span><span class="dis-t">' + d + '</span></div>').join('')}</div>
+        <div class="bsec">
+          <div class="bsec-t" style="display:flex;align-items:center;justify-content:space-between;">Clay enrichment prompt <button class="cpbtn" style="position:static;" onclick="cp(this,'${(br.clay_prompt || '').replace(/'/g, "\\'")}')">Copy</button></div>
+          <div class="clay">${br.clay_prompt}</div>
+        </div>
+        <div class="bsec"><div class="bsec-t">Verification steps</div>${(br.verify_steps || []).map((s, i) => '<div style="display:flex;gap:6px;margin-bottom:3px;"><span style="font-size:10px;font-weight:700;color:var(--lbl);flex-shrink:0;">' + (i + 1) + '.</span><span style="font-size:12px;">' + s + '</span></div>').join('')}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function dlDocx() {
+  if (!lastBriefs.length) { alert('Generate briefs first.'); return; }
+  let text = 'EVALUAKE LEAD SOURCING BRIEF\n' + '='.repeat(50) + '\n';
+  text += 'Generated: ' + new Date().toLocaleDateString() + ' | For Arif\n\n';
+  
+  lastBriefs.forEach((b, i) => {
+    const br = b.brief;
+    text += '\n' + '='.repeat(50) + '\n';
+    text += 'ICP ' + (i+1) + ': ' + br.icp_name + '\n';
+    text += 'Hit Rate: ' + br.hit_rate + '\n';
+    text += 'Where to Find: ' + br.where_to_find + '\n';
+    text += '='.repeat(50) + '\n\n';
+    
+    text += 'APOLLO FILTERS\n';
+    text += 'Titles: ' + (br.apollo_titles||[]).join(', ') + '\n';
+    text += 'Size: ' + br.apollo_size + '\n';
+    text += 'Industries: ' + (br.apollo_industries||[]).join(', ') + '\n';
+    text += 'Keywords: ' + (br.apollo_keywords||[]).join(', ') + '\n\n';
+    
+    text += 'APOLLO BOOLEAN SEARCH:\n' + br.apollo_boolean + '\n\n';
+    text += 'LINKEDIN TIPS:\n' + br.linkedin_tips + '\n\n';
+    
+    text += 'QUALITY FILTERS (KEEP):\n';
+    (br.quality_keep||[]).forEach(f => { text += '✓ ' + f + '\n'; });
+    text += '\nDISQUALIFIERS (REMOVE):\n';
+    (br.disqualify||[]).forEach(d => { text += '✗ ' + d + '\n'; });
+    
+    text += '\nCLAY ENRICHMENT PROMPT:\n' + br.clay_prompt + '\n\n';
+    text += 'VERIFICATION STEPS:\n';
+    (br.verify_steps||[]).forEach((s,i) => { text += (i+1) + '. ' + s + '\n'; });
+    text += '\n';
+  });
+
+  const blob = new Blob([text], { type: 'text/plain' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'Evaluake_Lead_Brief.txt'; a.click();
+  URL.revokeObjectURL(url);
+}
+</script>
+</body>
+</html>
