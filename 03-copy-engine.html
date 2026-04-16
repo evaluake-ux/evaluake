@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Campaign Copy Engine — Evaluake</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/docx/8.5.0/docx.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#f5f5f7;--sur:#fff;--bdr:#e4e4e4;--ink:#1d1d1f;--mut:#86868b;--lbl:#6e6e73;--acc:#ff9500;--grn:#28a745;--yel:#f5a623;--red:#dc3545;--blu:#007aff;--pur:#5856d6;--fnt:-apple-system,BlinkMacSystemFont,'Inter',sans-serif}
+body{background:var(--bg);color:var(--ink);font-family:var(--fnt);-webkit-font-smoothing:antialiased}
+input,textarea,select{font-family:var(--fnt);font-size:12px;background:var(--bg);border:1px solid var(--bdr);border-radius:6px;padding:6px 8px;color:var(--ink);outline:none;width:100%;transition:border-color .15s}
+input:focus,textarea:focus,select:focus{border-color:var(--acc)}
+textarea{resize:vertical;line-height:1.5}
+label{font-size:10px;font-weight:600;color:var(--lbl);text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:3px}
+.keybar{background:#fffbeb;border-bottom:1px solid #fde68a;padding:10px 24px;display:flex;align-items:center;gap:10px}
+.keybar input{max-width:360px;font-family:monospace;font-size:12px}
+.ks{font-size:11px;font-weight:600;white-space:nowrap}
+.ok{color:var(--grn)}.bad{color:var(--red)}
+.hdr{background:var(--sur);border-bottom:1px solid var(--bdr);padding:12px 24px;display:flex;align-items:center;gap:10px}
+.logo{width:26px;height:26px;background:var(--ink);border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:#fff}
+.hdr-t{font-size:15px;font-weight:700}
+.hdr-tag{background:var(--acc);color:#fff;font-size:10px;font-weight:700;padding:2px 9px;border-radius:20px;text-transform:uppercase}
+.layout{display:grid;grid-template-columns:370px 1fr;height:calc(100vh - 91px)}
+.fp{background:var(--sur);border-right:1px solid var(--bdr);overflow-y:auto}
+.fs{padding:12px 16px;border-bottom:1px solid var(--bdr)}
+.sh{font-size:10px;font-weight:700;color:var(--lbl);text-transform:uppercase;letter-spacing:.07em;margin-bottom:9px;display:flex;align-items:center;gap:6px}
+.sh::after{content:'';flex:1;height:1px;background:var(--bdr)}
+.fld{margin-bottom:8px}.fld:last-child{margin-bottom:0}
+.fld textarea{min-height:54px}
+.fr{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.upload{border:2px dashed var(--bdr);border-radius:8px;padding:16px;text-align:center;cursor:pointer;transition:all .15s;margin-bottom:8px}
+.upload:hover{border-color:var(--acc);background:#fff7ed}
+.upload.has{border-color:var(--grn);background:#f0fff4;border-style:solid}
+.upload-ico{font-size:20px;margin-bottom:4px}
+.upload-t{font-size:12px;font-weight:600}
+.upload-s{font-size:11px;color:var(--mut);margin-top:2px}
+.upload-fn{font-size:11px;font-weight:600;color:var(--grn);margin-top:3px}
+.preview{background:#f0fff4;border:1px solid #c3e6cb;border-radius:6px;padding:8px 10px;font-size:11px;line-height:1.6;display:none}
+.preview.show{display:block}
+.icp-cards{display:flex;flex-direction:column;gap:8px}
+.icpc-in{background:var(--bg);border:1px solid var(--bdr);border-radius:7px;padding:10px}
+.icpc-lbl{font-size:10px;font-weight:700;text-transform:uppercase;margin-bottom:7px}
+.icp1-lbl{color:#BA7517}.icp2-lbl{color:#185FA5}.icp3-lbl{color:#3B6D11}
+.rsec{padding:12px 16px}
+.rbtn{width:100%;padding:11px;background:var(--acc);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;transition:background .15s}
+.rbtn:hover:not(:disabled){background:#e08000}
+.rbtn:disabled{background:var(--bdr);color:var(--mut);cursor:not-allowed}
+.rnote{font-size:11px;color:var(--mut);text-align:center;margin-top:5px}
+.op{overflow-y:auto;display:flex;flex-direction:column}
+.empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:40px;text-align:center}
+.empty-ico{font-size:36px;opacity:.15}
+.empty-t{font-size:16px;font-weight:600;color:var(--lbl)}
+.empty-s{font-size:12px;color:var(--mut);line-height:1.6;max-width:260px}
+.loading{flex:1;display:none;flex-direction:column;align-items:center;justify-content:center;gap:8px;text-align:center}
+.loading.show{display:flex}
+.spin{width:26px;height:26px;border:3px solid var(--bdr);border-top-color:var(--acc);border-radius:50%;animation:sp .7s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+.lsteps{display:flex;flex-direction:column;gap:4px;width:100%;max-width:300px}
+.lstep{font-size:11px;color:var(--mut);padding:5px 9px;background:var(--bg);border:1px solid var(--bdr);border-radius:5px;transition:all .2s}
+.lstep.active{color:var(--acc);border-color:var(--acc);background:#fff7ed}
+.lstep.done{color:var(--grn);border-color:#c3e6cb;background:#f0fff4}
+.results{display:none;padding:16px 20px 60px}
+.results.show{display:block}
+.icp-tabs{display:flex;gap:5px;margin-bottom:12px;overflow-x:auto;padding-bottom:2px}
+.icp-tab{padding:5px 13px;border:1px solid var(--bdr);border-radius:20px;font-size:11px;font-weight:500;cursor:pointer;background:var(--sur);color:var(--lbl);white-space:nowrap;transition:all .15s}
+.icp-tab.active{background:var(--ink);color:#fff;border-color:var(--ink)}
+.icp-panel{display:none}.icp-panel.show{display:block}
+.ver-tabs{display:flex;gap:3px;margin-bottom:10px;background:var(--sur);border:1px solid var(--bdr);border-radius:7px;padding:3px}
+.ver-tab{flex:1;padding:5px;border:none;border-radius:5px;background:transparent;font-size:11px;font-weight:500;cursor:pointer;color:var(--lbl);transition:all .15s}
+.ver-tab.active{background:var(--bg);color:var(--ink);border:1px solid var(--bdr)}
+.ver-panel{display:none}.ver-panel.show{display:block}
+.ver-head{background:var(--bg);border:1px solid var(--bdr);border-radius:8px;padding:10px 12px;margin-bottom:9px;display:flex;align-items:center;justify-content:space-between}
+.ver-name{font-size:13px;font-weight:600}
+.ver-desc{font-size:11px;color:var(--mut);margin-top:1px}
+.ba{font-size:10px;font-weight:600;padding:2px 7px;border-radius:4px}
+.ba-a{background:#FAEEDA;color:#854F0B;border:1px solid #FAC775}
+.ba-b{background:#E6F1FB;color:#185FA5;border:1px solid #B5D4F4}
+.ba-c{background:#EEEDFE;color:#534AB7;border:1px solid #CECBF6}
+.ecard{border:1px solid var(--bdr);border-radius:8px;overflow:hidden;margin-bottom:7px}
+.ehead{background:var(--bg);padding:7px 10px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--bdr)}
+.etype{font-size:10px;font-weight:600;color:var(--lbl)}
+.eday{font-size:10px;color:var(--mut)}
+.cpbtn{font-size:10px;padding:2px 7px;border:1px solid var(--bdr);border-radius:4px;background:none;cursor:pointer;color:var(--lbl);transition:all .15s}
+.cpbtn:hover{background:var(--bg)}
+.esubj{padding:7px 10px 0;font-size:11px;color:var(--mut)}
+.esubj strong{color:var(--ink);font-weight:500}
+.ebody{padding:7px 10px 10px;font-family:monospace;font-size:11px;line-height:1.8;color:var(--ink);white-space:pre-wrap;word-break:break-word}
+.pbox{border:1px solid var(--bdr);border-radius:8px;overflow:hidden;margin-bottom:8px}
+.phead{background:var(--bg);padding:7px 10px;font-size:10px;font-weight:600;color:var(--lbl);text-transform:uppercase;border-bottom:1px solid var(--bdr);display:flex;align-items:center;justify-content:space-between}
+.pbody{padding:9px 10px;font-family:monospace;font-size:11px;line-height:1.7;color:var(--ink);white-space:pre-wrap;word-break:break-word}
+.abar{position:sticky;bottom:0;background:var(--sur);border-top:1px solid var(--bdr);padding:10px 20px;display:none;align-items:center;justify-content:space-between}
+.abar.show{display:flex}
+.btn{padding:7px 13px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;border:none;display:inline-flex;align-items:center;gap:4px}
+.btn-p{background:var(--acc);color:#fff}.btn-p:hover{background:#e08000}
+.btn-s{background:var(--bg);color:var(--ink);border:1px solid var(--bdr)}.btn-s:hover{border-color:var(--ink)}
+.err{background:#fdecea;border:1px solid #f5c6cb;border-radius:7px;padding:10px 13px;font-size:12px;color:#721c24;margin-bottom:12px}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <div class="logo">EV</div>
+  <span class="hdr-t">Evaluake</span>
+  <span class="hdr-tag">Stage 3 — Copy Engine</span>
+</div>
+
+<div class="keybar">
+  <input type="password" id="apikey" placeholder="Paste Anthropic API key (sk-ant-...) — saved automatically">
+  <span class="ks" id="kstat"></span>
+</div>
+
+<div class="layout">
+<div class="fp">
+
+  <div class="fs"><div class="sh">01 · Upload Stage 1 PDF (optional)</div>
+    <div class="upload" id="upbox" onclick="document.getElementById('finput').click()">
+      <div class="upload-ico">📄</div>
+      <div class="upload-t">Drop Stage 1 PDF here</div>
+      <div class="upload-s">Auto-fills ICP fields below</div>
+      <div class="upload-fn" id="fname"></div>
+    </div>
+    <input type="file" id="finput" accept=".pdf" style="display:none" onchange="handlePDF(this)">
+    <div class="preview" id="prev"></div>
+    <div style="font-size:11px;color:var(--mut);margin-top:5px;">No PDF? Fill ICPs manually below.</div>
+  </div>
+
+  <div class="fs"><div class="sh">02 · ICPs</div>
+    <div class="icp-cards">
+      <div class="icpc-in">
+        <div class="icpc-lbl icp1-lbl">ICP 1</div>
+        <div class="fld"><label>Name</label><input id="i1n" placeholder="e.g. SMB Manufacturing Providers"></div>
+        <div class="fld"><label>Job titles</label><input id="i1t" placeholder="e.g. Operations Manager, Sales Director"></div>
+        <div class="fld"><label>Core pain</label><input id="i1p" placeholder="e.g. Can't scale relationship-based selling"></div>
+        <div class="fld"><label>Buying trigger</label><input id="i1g" placeholder="e.g. Lost key account, new territory"></div>
+      </div>
+      <div class="icpc-in">
+        <div class="icpc-lbl icp2-lbl">ICP 2</div>
+        <div class="fld"><label>Name</label><input id="i2n" placeholder="e.g. Professional Services Firms"></div>
+        <div class="fld"><label>Job titles</label><input id="i2t" placeholder="e.g. Managing Partner, Practice Lead"></div>
+        <div class="fld"><label>Core pain</label><input id="i2p" placeholder="e.g. Partners hate prospecting"></div>
+        <div class="fld"><label>Buying trigger</label><input id="i2g" placeholder="e.g. Partner retirement, client loss"></div>
+      </div>
+      <div class="icpc-in">
+        <div class="icpc-lbl icp3-lbl">ICP 3</div>
+        <div class="fld"><label>Name</label><input id="i3n" placeholder="e.g. Healthcare Tech Vendors"></div>
+        <div class="fld"><label>Job titles</label><input id="i3t" placeholder="e.g. VP Sales, BD Director"></div>
+        <div class="fld"><label>Core pain</label><input id="i3p" placeholder="e.g. Generic outreach fails multi-stakeholder sales"></div>
+        <div class="fld"><label>Buying trigger</label><input id="i3g" placeholder="e.g. New product launch, expansion"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="fs"><div class="sh">03 · Your offer</div>
+    <div class="fld"><label>What you do</label><input id="offer" value="Done-for-you cold email outreach that books qualified meetings for B2B companies"></div>
+    <div class="fld"><label>Differentiators</label><textarea id="diff">Full system not just emails. Max 5 clients. Guarantee 10 qualified conversations in 60 days or work free. Infrastructure-first.</textarea></div>
+    <div class="fld"><label>Proof</label><input id="proof" value="50+ B2B clients. 2-5 qualified meetings in 60 days."></div>
+    <div class="fr">
+      <div class="fld"><label>Sender name</label><input id="sname" value="Nur"></div>
+      <div class="fld"><label>Company</label><input id="sco" value="Evaluake"></div>
+    </div>
+  </div>
+
+  <div class="fs"><div class="sh">04 · Settings</div>
+    <div class="fr">
+      <div class="fld"><label>Follow-ups</label><select id="fuct"><option value="3" selected>3 follow-ups</option><option value="2">2 follow-ups</option></select></div>
+      <div class="fld"><label>Spacing</label><select id="fusp"><option value="2-5-10" selected>Day 2, 5, 10</option><option value="3-7-14">Day 3, 7, 14</option></select></div>
+    </div>
+    <div class="fld"><label>Extra context</label><textarea id="extra" placeholder="Things to avoid, seasonal angles, competitor names..."></textarea></div>
+  </div>
+
+  <div class="rsec">
+    <button class="rbtn" id="rbtn" onclick="runCopy()">Generate all sequences</button>
+    <div class="rnote">~3–4 min · 3 ICPs × 3 angles × 4 emails = 36 sequences + personalization</div>
+  </div>
+</div>
+
+<div class="op">
+  <div class="empty" id="emp">
+    <div class="empty-ico">✉️</div>
+    <div class="empty-t">No sequences yet</div>
+    <div class="empty-s">Upload Stage 1 PDF or fill ICPs manually. Generate 36 email sequences with personalization prompts.</div>
+  </div>
+  <div class="loading" id="ld">
+    <div class="spin"></div>
+    <div style="font-size:13px;font-weight:600;">Writing sequences...</div>
+    <div class="lsteps">
+      <div class="lstep" id="ls1">Researching ICP 1</div>
+      <div class="lstep" id="ls2">Writing ICP 1 sequences (A, B, C)</div>
+      <div class="lstep" id="ls3">Researching ICP 2</div>
+      <div class="lstep" id="ls4">Writing ICP 2 sequences (A, B, C)</div>
+      <div class="lstep" id="ls5">Researching ICP 3</div>
+      <div class="lstep" id="ls6">Writing ICP 3 sequences (A, B, C)</div>
+      <div class="lstep" id="ls7">Building personalization prompts</div>
+    </div>
+  </div>
+  <div class="results" id="results">
+    <div class="icp-tabs" id="icptabs"></div>
+    <div id="icppanels"></div>
+  </div>
+</div>
+</div>
+
+<div class="abar" id="abar">
+  <span style="font-size:11px;color:var(--mut);" id="astat">Sequences ready</span>
+  <div style="display:flex;gap:7px;">
+    <button class="btn btn-s" onclick="dlDocx()">Download DOCX</button>
+  </div>
+</div>
+
+<script>
+let allData = [];
+
+const ki = document.getElementById('apikey');
+const ks = document.getElementById('kstat');
+ki.addEventListener('input', () => {
+  const v = ki.value.trim();
+  if (v.startsWith('sk-ant') && v.length > 30) {
+    localStorage.setItem('ev_key', v);
+    ks.textContent = 'Saved ✓'; ks.className = 'ks ok';
+  }
+});
+window.onload = () => {
+  const s = localStorage.getItem('ev_key') || '';
+  if (s) { ki.value = s; ks.textContent = 'Key ready ✓'; ks.className = 'ks ok'; }
+  else { ks.textContent = 'Paste key above'; ks.className = 'ks bad'; }
+};
+
+function getKey() { return localStorage.getItem('ev_key') || ki.value.trim(); }
+function gv(id) { return document.getElementById(id)?.value?.trim() || ''; }
+const delay = ms => new Promise(r => setTimeout(r, ms));
+
+async function api(prompt, sys, tok) {
+  const key = getKey();
+  if (!key) throw new Error('No API key. Paste your sk-ant- key above.');
+  const r = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+    body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: tok || 1500, system: sys, messages: [{ role: 'user', content: prompt }] })
+  });
+  if (!r.ok) { const e = await r.json().catch(() => ({})); throw new Error(e.error?.message || 'API error ' + r.status); }
+  const d = await r.json();
+  return d.content.filter(c => c.type === 'text').map(c => c.text).join('');
+}
+
+function pj(raw) {
+  const c = raw.replace(/```json|```/g, '');
+  const s = c.indexOf('{'), e = c.lastIndexOf('}');
+  if (s === -1 || e === -1) throw new Error('No JSON in response');
+  return JSON.parse(c.slice(s, e + 1));
+}
+
+function step(n) {
+  for (let i = 1; i <= 7; i++) {
+    const el = document.getElementById('ls' + i);
+    if (!el) continue;
+    el.className = 'lstep' + (i < n ? ' done' : i === n ? ' active' : '');
+  }
+}
+
+async function extractPDF(file) {
+  const lib = window['pdfjs-dist/build/pdf'];
+  lib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  const ab = await file.arrayBuffer();
+  const pdf = await lib.getDocument({ data: ab }).promise;
+  let text = '';
+  for (let i = 1; i <= pdf.numPages; i++) {
+    const page = await pdf.getPage(i);
+    const c = await page.getTextContent();
+    text += c.items.map(x => x.str).join(' ') + '\n';
+  }
+  return text;
+}
+
+async function handlePDF(input) {
+  const file = input.files[0];
+  if (!file) return;
+  document.getElementById('fname').textContent = '📎 ' + file.name;
+  document.getElementById('upbox').className = 'upload has';
+  try {
+    const text = await extractPDF(file);
+    const icpM = text.match(/ICP #?\d+:?\s*([^\n]+)/g) || [];
+    const painM = text.match(/Pain(?:\s*Point)?:?\s*([^\n]+)/g) || [];
+    const titM = text.match(/Titles?:?\s*([^\n]+)/g) || [];
+    const trgM = text.match(/(?:Buying\s*)?Trigger:?\s*([^\n]+)/g) || [];
+    if (icpM.length >= 3) {
+      for (let i = 0; i < 3; i++) {
+        const name = (icpM[i] || '').replace(/ICP #?\d+:?\s*/, '').trim();
+        const pain = (painM[i] || '').replace(/Pain(?:\s*Point)?:?\s*/, '').trim();
+        const tits = (titM[i] || '').replace(/Titles?:?\s*/, '').trim();
+        const trig = (trgM[i] || '').replace(/(?:Buying\s*)?Trigger:?\s*/, '').trim();
+        if (name) document.getElementById('i' + (i + 1) + 'n').value = name;
+        if (pain) document.getElementById('i' + (i + 1) + 'p').value = pain;
+        if (tits) document.getElementById('i' + (i + 1) + 't').value = tits;
+        if (trig) document.getElementById('i' + (i + 1) + 'g').value = trig;
+      }
+      const pr = document.getElementById('prev');
+      pr.className = 'preview show';
+      pr.innerHTML = '<strong>Extracted from PDF:</strong><br>' + icpM.slice(0, 3).map((m, i) => 'ICP ' + (i + 1) + ': ' + m.replace(/ICP #?\d+:?\s*/, '').trim()).join('<br>');
+    } else {
+      const pr = document.getElementById('prev');
+      pr.className = 'preview show';
+      pr.textContent = 'Could not auto-extract ICPs. Please fill manually below.';
+    }
+  } catch (err) {
+    const pr = document.getElementById('prev');
+    pr.className = 'preview show';
+    pr.textContent = 'Error reading PDF: ' + err.message;
+  }
+}
+
+const SYS = `You are a world-class B2B cold email copywriter. Josh Braun style. Calm, peer-to-peer, no hype, no compliments, no generic phrases.
+
+RULES: 50-125 words max per email. Never start with "I". No links in first email. Plain text only in email body. Soft CTA always.
+Subject lines: 3-7 words, lowercase preferred.
+Version A = Timeline/Trigger hook (9.91% reply rate). Version B = Insight hook (5-8%). Version C = Problem/Social proof (3.9-4.7%).
+Output ONLY valid JSON. No text before or after.`;
+
+async function runCopy() {
+  const key = getKey();
+  if (!key) { alert('Paste your Anthropic API key first.'); return; }
+
+  const icps = [];
+  for (let i = 1; i <= 3; i++) {
+    const name = gv('i' + i + 'n');
+    if (!name) { alert('Fill ICP ' + i + ' name first.'); return; }
+    icps.push({ rank: i, name, titles: gv('i' + i + 't'), pain: gv('i' + i + 'p'), trigger: gv('i' + i + 'g') });
+  }
+
+  const offer = gv('offer'), diff = gv('diff'), proof = gv('proof');
+  const sname = gv('sname') || 'Nur', sco = gv('sco') || 'Evaluake';
+  const fuct = gv('fuct'), fusp = gv('fusp'), extra = gv('extra');
+  const days = fusp.split('-');
+  const ofCtx = `OFFER: ${offer}\nDIFF: ${diff}\nPROOF: ${proof}\nFROM: ${sname} at ${sco}`;
+
+  document.getElementById('rbtn').disabled = true;
+  document.getElementById('rbtn').textContent = 'Writing...';
+  document.getElementById('emp').style.display = 'none';
+  document.getElementById('results').className = 'results';
+  document.getElementById('ld').className = 'loading show';
+  document.getElementById('abar').className = 'abar';
+  allData = [];
+
+  try {
+    for (let i = 0; i < icps.length; i++) {
+      const icp = icps[i];
+      step(i * 2 + 1);
+      const icpCtx = `ICP: ${icp.name}\nTITLES: ${icp.titles}\nPAIN: ${icp.pain}\nTRIGGER: ${icp.trigger}`;
+
+      const resRaw = await api(`Research this ICP for cold email. JSON only:\n${icpCtx}\n{"icp_world":"","language_they_use":"","what_they_hate":"","angle_a_name":"","angle_a_desc":"","angle_b_name":"","angle_b_desc":"","angle_c_name":"","angle_c_desc":""}`, SYS, 600);
+      const res = pj(resRaw);
+      step(i * 2 + 2);
+
+      const angles = [
+        { name: res.angle_a_name, desc: res.angle_a_desc, badge: 'A' },
+        { name: res.angle_b_name, desc: res.angle_b_desc, badge: 'B' },
+        { name: res.angle_c_name, desc: res.angle_c_desc, badge: 'C' }
+      ];
+
+      const versions = [];
+      for (const ang of angles) {
+        const vRaw = await api(`Write cold email sequence using "${ang.name}" angle.\n${icpCtx}\n${ofCtx}\nANGLE: ${ang.desc}\nLANG: ${res.language_they_use}\nAVOID: ${res.what_they_hate}\n${extra ? 'EXTRA: ' + extra : ''}\n\nJSON: {"version":"${ang.badge}","angle_name":"${ang.name}","angle_desc":"${ang.desc}","emails":[{"num":1,"type":"Initial","subject":"","body":"","send_day":"Day 1"},{"num":2,"type":"Follow-up 1","subject":"","body":"","send_day":"Day ${days[0]}"},{"num":3,"type":"Follow-up 2","subject":"","body":"","send_day":"Day ${days[1]}"}${fuct === '3' ? `,{"num":4,"type":"Follow-up 3","subject":"","body":"","send_day":"Day ${days[2]}"}` : ''}]}`, SYS, 900);
+        versions.push(pj(vRaw));
+        await delay(150);
+      }
+
+      step(7);
+      const pRaw = await api(`Personalization for this ICP.\n${icpCtx}\nAngles: A=${res.angle_a_name}, B=${res.angle_b_name}, C=${res.angle_c_name}\nJSON: {"enricher_prompt":"","icebreaker_formula":"","examples":["","",""],"avoid":["",""]}`, SYS, 600);
+      const personal = pj(pRaw);
+      allData.push({ icp, versions, personal });
+      await delay(200);
+    }
+
+    renderAll(allData);
+    document.getElementById('ld').className = 'loading';
+    document.getElementById('results').className = 'results show';
+    document.getElementById('abar').className = 'abar show';
+    document.getElementById('astat').textContent = allData.length * 3 + ' sequences generated';
+
+  } catch (err) {
+    document.getElementById('ld').className = 'loading';
+    document.getElementById('emp').style.display = 'flex';
+    document.getElementById('emp').innerHTML = `<div class="empty-ico">⚠️</div><div class="empty-t">Error</div><div class="empty-s">${err.message}</div>`;
+  } finally {
+    document.getElementById('rbtn').disabled = false;
+    document.getElementById('rbtn').textContent = 'Generate all sequences';
+  }
+}
+
+function esc(s) { return (s || '').replace(/\\/g, '\\\\').replace(/`/g, '\\`').replace(/\$/g, '\\$'); }
+
+function renderAll(data) {
+  const tabs = document.getElementById('icptabs');
+  const panels = document.getElementById('icppanels');
+  tabs.innerHTML = '';
+  panels.innerHTML = '';
+
+  data.forEach((d, idx) => {
+    const tab = document.createElement('button');
+    tab.className = 'icp-tab' + (idx === 0 ? ' active' : '');
+    tab.textContent = 'ICP ' + (idx + 1) + ': ' + d.icp.name.split(' ').slice(0, 3).join(' ');
+    tab.onclick = () => switchICP(idx);
+    tabs.appendChild(tab);
+
+    const panel = document.createElement('div');
+    panel.className = 'icp-panel' + (idx === 0 ? ' show' : '');
+    panel.id = 'ip' + idx;
+
+    const bmap = ['ba-a', 'ba-b', 'ba-c'];
+    const vkeys = ['a', 'b', 'c'];
+    const verPanels = d.versions.map((ver, vi) => {
+      const vk = vkeys[vi];
+      const emails = ver.emails.map(e => `
+        <div class="ecard">
+          <div class="ehead">
+            <div style="display:flex;align-items:center;gap:7px"><span class="etype">${e.type}</span><span class="eday">${e.send_day}</span></div>
+            <button class="cpbtn" onclick="cp(this,\`${esc(e.body)}\`)">Copy</button>
+          </div>
+          <div class="esubj">Subject: <strong>${e.subject}</strong></div>
+          <div class="ebody">${e.body}</div>
+        </div>`).join('');
+      return `<div class="ver-panel${vk === 'a' ? ' show' : ''}" id="vp${idx}${vk}">
+        <div class="ver-head"><div><div class="ver-name">${ver.angle_name}</div><div class="ver-desc">${ver.angle_desc}</div></div><span class="ba ${bmap[vi]}">Ver ${ver.version}</span></div>
+        ${emails}
+        <button class="cpbtn" style="padding:5px 11px;margin-top:5px;" onclick="cpAll(${idx},'${vk}')">Copy all emails</button>
+      </div>`;
+    }).join('');
+
+    const p = d.personal;
+    const persPanel = `<div class="ver-panel" id="vp${idx}p">
+      <div class="pbox"><div class="phead"><span>Clay enricher prompt</span><button class="cpbtn" onclick="cp(this,\`${esc(p.enricher_prompt)}\`)">Copy</button></div><div class="pbody">${p.enricher_prompt}</div></div>
+      <div class="pbox"><div class="phead">Icebreaker formula</div><div class="pbody">${p.icebreaker_formula}</div></div>
+      <div class="pbox"><div class="phead">Example icebreakers</div><div class="pbody">${(p.examples || []).map(e => '"' + e + '"').join('\n')}</div></div>
+      <div class="pbox"><div class="phead">What to avoid</div><div class="pbody">${(p.avoid || []).join('\n')}</div></div>
+    </div>`;
+
+    panel.innerHTML = `
+      <div class="ver-tabs" id="vt${idx}">
+        <button class="ver-tab active" onclick="switchVer(${idx},'a')">Version A</button>
+        <button class="ver-tab" onclick="switchVer(${idx},'b')">Version B</button>
+        <button class="ver-tab" onclick="switchVer(${idx},'c')">Version C</button>
+        <button class="ver-tab" onclick="switchVer(${idx},'p')">Personalization</button>
+      </div>
+      ${verPanels}${persPanel}`;
+    panels.appendChild(panel);
+  });
+}
+
+function switchICP(idx) {
+  document.querySelectorAll('.icp-tab').forEach((t, i) => t.className = 'icp-tab' + (i === idx ? ' active' : ''));
+  document.querySelectorAll('.icp-panel').forEach((p, i) => p.className = 'icp-panel' + (i === idx ? ' show' : ''));
+}
+function switchVer(idx, vk) {
+  const tabs = document.querySelectorAll(`#vt${idx} .ver-tab`);
+  const keys = ['a', 'b', 'c', 'p'];
+  tabs.forEach((t, i) => t.className = 'ver-tab' + (keys[i] === vk ? ' active' : ''));
+  keys.forEach(k => { const p = document.getElementById('vp' + idx + k); if (p) p.className = 'ver-panel' + (k === vk ? ' show' : ''); });
+}
+function cp(btn, text) {
+  navigator.clipboard.writeText(text).then(() => { btn.textContent = 'Copied!'; setTimeout(() => btn.textContent = 'Copy', 2000); });
+}
+function cpAll(idx, vk) {
+  const panel = document.getElementById('vp' + idx + vk);
+  const bodies = panel?.querySelectorAll('.ebody') || [];
+  const subjs = panel?.querySelectorAll('.esubj') || [];
+  let text = '';
+  bodies.forEach((b, i) => { text += `--- Email ${i + 1} ---\n${subjs[i]?.textContent || ''}\n\n${b.textContent}\n\n`; });
+  navigator.clipboard.writeText(text).then(() => alert('All emails copied.'));
+}
+
+async function dlDocx() {
+  if (!allData.length) { alert('Generate sequences first.'); return; }
+  const { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType } = docx;
+  const h1 = t => new Paragraph({ heading: HeadingLevel.HEADING_1, children: [new TextRun({ text: t || '', bold: true })] });
+  const h2 = t => new Paragraph({ heading: HeadingLevel.HEADING_2, children: [new TextRun({ text: t || '', bold: true })] });
+  const h3 = t => new Paragraph({ heading: HeadingLevel.HEADING_3, children: [new TextRun({ text: t || '', bold: true })] });
+  const p = (t, o) => new Paragraph({ children: [new TextRun({ text: t || '', ...(o || {}) })] });
+  const gap = () => new Paragraph({ children: [new TextRun('')] });
+
+  const ch = [h1('Campaign Email Sequences — Evaluake'), p('Generated: ' + new Date().toLocaleDateString(), { color: '666666', size: 20 }), gap()];
+  allData.forEach((d, i) => {
+    ch.push(h1('ICP ' + (i + 1) + ': ' + d.icp.name));
+    ch.push(p('Pain: ' + d.icp.pain, { italics: true, color: '666666' }));
+    ch.push(gap());
+    d.versions.forEach(ver => {
+      ch.push(h2('Version ' + ver.version + ' — ' + ver.angle_name));
+      ch.push(p(ver.angle_desc, { color: '666666' }));
+      ch.push(gap());
+      ver.emails.forEach(e => {
+        ch.push(h3(e.type + ' | ' + e.send_day));
+        ch.push(p('Subject: ' + e.subject, { bold: true }));
+        (e.body || '').split('\n').forEach(line => ch.push(p(line)));
+        ch.push(gap());
+      });
+    });
+    ch.push(h2('ICP ' + (i + 1) + ' — Personalization'));
+    ch.push(p('Icebreaker: ' + d.personal.icebreaker_formula, { bold: true }));
+    ch.push(gap());
+    ch.push(p('Clay enricher prompt:', { bold: true }));
+    (d.personal.enricher_prompt || '').split('\n').forEach(l => ch.push(p(l, { font: 'Courier New', size: 20 })));
+    ch.push(gap());
+  });
+
+  const document = new Document({
+    styles: { default: { document: { run: { font: 'Arial', size: 24 } } }, paragraphStyles: [
+      { id: 'Heading1', name: 'Heading 1', basedOn: 'Normal', next: 'Normal', quickFormat: true, run: { size: 36, bold: true, font: 'Arial' }, paragraph: { spacing: { before: 300, after: 160 }, outlineLevel: 0 } },
+      { id: 'Heading2', name: 'Heading 2', basedOn: 'Normal', next: 'Normal', quickFormat: true, run: { size: 28, bold: true, font: 'Arial' }, paragraph: { spacing: { before: 240, after: 120 }, outlineLevel: 1 } },
+      { id: 'Heading3', name: 'Heading 3', basedOn: 'Normal', next: 'Normal', quickFormat: true, run: { size: 24, bold: true, font: 'Arial' }, paragraph: { spacing: { before: 180, after: 80 }, outlineLevel: 2 } },
+    ] },
+    sections: [{ properties: { page: { size: { width: 12240, height: 15840 }, margin: { top: 1440, right: 1440, bottom: 1440, left: 1440 } } }, children: ch }]
+  });
+
+  const blob = await Packer.toBlob(document);
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'Evaluake_Sequences.docx'; a.click();
+  URL.revokeObjectURL(url);
+}
+</script>
+</body>
+</html>
